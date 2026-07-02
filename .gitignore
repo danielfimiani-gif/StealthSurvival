@@ -1,0 +1,56 @@
+# Unreal Engine generated folders
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+
+# RiderLink plugin: each developer installs it locally from Rider
+Plugins/Developer/RiderLink/
+Plugins/RiderLink/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.sln
+*.suo
+*.opensdf
+*.opendb
+*.sdf
+*.VC.db
+*.VC.opendb
+*.user
+*.userosscache
+*.userprefs
+*.xcodeproj
+*.xcworkspace
+
+# Compiled object / library files (defensive — should be inside Binaries/ anyway)
+*.obj
+*.lib
+*.exp
+*.pch
+*.ipch
+*.pdb
+*.idb
+*.ilk
+
+# OS junk
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.lnk
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor backups / swaps
+*.bak
+*.orig
+*~
+*.swp
+
+# Crash reports
+*.dmp
+crashreportclient*.log
