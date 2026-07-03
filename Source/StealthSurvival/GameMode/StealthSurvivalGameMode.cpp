@@ -36,13 +36,6 @@ void AStealthSurvivalGameMode::Tick(float DeltaSeconds)
 	const float NewLevel = GS->GetDetectionLevel() + Delta;
 	GS->SetDetectionLevel(NewLevel);
 	
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 0.f, 
-			FColor::Yellow, 
-			FString::Printf(TEXT("Detection: %.2f | Watchers: %d"),
-			GS->GetDetectionLevel(),ActiveWatchers));
-	}
 	if (NewLevel >= 1.f)
 	{
 		TriggerLose();

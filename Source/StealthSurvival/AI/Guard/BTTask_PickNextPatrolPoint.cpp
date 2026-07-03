@@ -36,22 +36,27 @@ EBTNodeResult::Type UBTTask_PickNextPatrolPoint::ExecuteTask(UBehaviorTreeCompon
 		return EBTNodeResult::Failed;
 	}
 	
-	int32 Index = Blackboard->GetValueAsInt(PatrolIndexKey.SelectedKeyName);
-	if (!Points.IsValidIndex(Index))
+	int32 VirtualIndex = Blackboard->GetValueAsInt(PatrolIndexKey.SelectedKeyName);
+	const int32 Num = Points.Num();
+
+	int32 ActualIndex = 0;
+	int32 NextVirtualIndex = 0;
+	if (Num > 1)
 	{
-		Index = 0;
+		const int32 Cycle = 2 * Num - 2;
+		const int32 Wrapped = ((VirtualIndex % Cycle) + Cycle) % Cycle;
+		ActualIndex = (Wrapped < Num) ? Wrapped : (Cycle - Wrapped);
+		NextVirtualIndex = Wrapped + 1;
 	}
-	
-	AActor* TargetPoint = Points[Index];
+
+	AActor* TargetPoint = Points[ActualIndex];
 	if (TargetPoint == nullptr)
 	{
 		return EBTNodeResult::Failed;
 	}
-	
+
 	Blackboard->SetValueAsVector(BlackboardKey.SelectedKeyName, TargetPoint->GetActorLocation());
-	
-	const int32 NewIndex = (Index + 1) % Points.Num();
-	Blackboard->SetValueAsInt(PatrolIndexKey.SelectedKeyName, NewIndex);
-	
+	Blackboard->SetValueAsInt(PatrolIndexKey.SelectedKeyName, NextVirtualIndex);
+
 	return EBTNodeResult::Succeeded;
 }

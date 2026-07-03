@@ -5,6 +5,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 
 AStealthGuardCharacter::AStealthGuardCharacter()
 {
@@ -17,6 +18,13 @@ AStealthGuardCharacter::AStealthGuardCharacter()
 	VisionConeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	VisionConeMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -85.0f));
 	VisionConeMesh->SetCastShadow(false);
+
+	TakedownPrompt = CreateDefaultSubobject<UWidgetComponent>(TEXT("TakedownPrompt"));
+	TakedownPrompt->SetupAttachment(RootComponent);
+	TakedownPrompt->SetWidgetSpace(EWidgetSpace::Screen);
+	TakedownPrompt->SetDrawSize(FVector2D(80.f, 80.f));
+	TakedownPrompt->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+	TakedownPrompt->SetVisibility(false);
 
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
@@ -84,8 +92,16 @@ void AStealthGuardCharacter::Die()
 		MeshComp->SetCollisionProfileName(TEXT("Ragdoll"));
 		MeshComp->SetSimulatePhysics(true);
 	}
-	
+
 	SetLifeSpan(DeathLifespan);
+}
+
+void AStealthGuardCharacter::SetTakedownAvailable(bool bAvailable)
+{
+	if (TakedownPrompt != nullptr)
+	{
+		TakedownPrompt->SetVisibility(bAvailable);
+	}
 }
 
 void AStealthGuardCharacter::SetAlertState(EStealthAlertState NewState)

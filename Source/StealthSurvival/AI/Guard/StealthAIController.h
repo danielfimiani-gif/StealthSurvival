@@ -27,6 +27,7 @@ protected:
 	TObjectPtr<UAISenseConfig_Hearing> HearingConfig;
 	
 	virtual void OnPossess(APawn* InPawn) override;
+	virtual void OnUnPossess() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	UFUNCTION()

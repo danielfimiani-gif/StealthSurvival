@@ -4,6 +4,7 @@
 #include "Animation/AnimInstance.h"
 #include "StealthAnimInstance.generated.h" 
 
+class ACharacter;
 class AStealthSurvivalCharacter;
 
 UCLASS()
@@ -36,6 +37,6 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 private:
-	
+	TWeakObjectPtr<class ACharacter> OwningCharacter;
 	TWeakObjectPtr<class AStealthSurvivalCharacter> StealthCharacter;
 };

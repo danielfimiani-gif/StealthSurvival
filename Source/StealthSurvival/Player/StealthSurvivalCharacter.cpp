@@ -254,7 +254,21 @@ void AStealthSurvivalCharacter::Tick(float DeltaSeconds)
 	AimAtCursor();
 	UpdateCameraPan(DeltaSeconds);
 	UpdateCameraOcclusion();
-	
+
+	AStealthGuardCharacter* TakedownTarget = FindTakedownTarget();
+	if (TakedownTarget != CurrentTakedownTarget.Get())
+	{
+		if (AStealthGuardCharacter* Prev = CurrentTakedownTarget.Get())
+		{
+			Prev->SetTakedownAvailable(false);
+		}
+		if (TakedownTarget != nullptr)
+		{
+			TakedownTarget->SetTakedownAvailable(true);
+		}
+		CurrentTakedownTarget = TakedownTarget;
+	}
+
 	NoiseEmissionTimer += DeltaSeconds;
 	if (NoiseEmissionTimer < NoiseEmissionInterval)
 	{
@@ -283,49 +297,64 @@ void AStealthSurvivalCharacter::Tick(float DeltaSeconds)
 	);
 }
 
-void AStealthSurvivalCharacter::ExecuteTakeDown()
+AStealthGuardCharacter* AStealthSurvivalCharacter::FindTakedownTarget() const
 {
 	UWorld* World = GetWorld();
 	if (World == nullptr)
 	{
-		return;
+		return nullptr;
 	}
-	
+
 	const FVector TraceStart = GetActorLocation();
 	const FVector TraceEnd = TraceStart + GetActorForwardVector() * TakeDownTraceDistance;
-	
+
 	FHitResult Hit;
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
-	
-	const bool bHit = World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Pawn, Params);
-	if (!bHit)
+
+	if (!World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Pawn, Params))
 	{
-		return;
+		return nullptr;
 	}
-	
+
 	AStealthGuardCharacter* Guard = Cast<AStealthGuardCharacter>(Hit.GetActor());
+	if (Guard == nullptr || Guard->IsDead())
+	{
+		return nullptr;
+	}
+
+	FVector GuardToPlayer = GetActorLocation() - Guard->GetActorLocation();
+	GuardToPlayer.Z = 0.f;
+	GuardToPlayer.Normalize();
+
+	FVector GuardForward = Guard->GetActorForwardVector();
+	GuardForward.Z = 0.f;
+	GuardForward.Normalize();
+
+	if (FVector::DotProduct(GuardForward, GuardToPlayer) > TakeDownRearDotThreshold)
+	{
+		return nullptr;
+	}
+
+	return Guard;
+}
+
+void AStealthSurvivalCharacter::ExecuteTakeDown()
+{
+	AStealthGuardCharacter* Guard = FindTakedownTarget();
 	if (Guard == nullptr)
 	{
 		return;
 	}
-	
-	FVector GuardToPlayer = GetActorLocation() - Guard->GetActorLocation();
-	GuardToPlayer.Z = 0.f;
-	GuardToPlayer.Normalize();
-	
-	FVector GuardForward = Guard->GetActorForwardVector();
-	GuardForward.Z = 0.f;
-	GuardForward.Normalize();
-	
-	const float DotProduct = FVector::DotProduct(GuardForward, GuardToPlayer);
-	
-	if (DotProduct > TakeDownRearDotThreshold)
+
+	if (TakeDownMontage != nullptr)
 	{
-		return;
+		PlayAnimMontage(TakeDownMontage);
 	}
-	
+
+	Guard->SetTakedownAvailable(false);
 	Guard->Die();
+	CurrentTakedownTarget = nullptr;
 }
 
 void AStealthSurvivalCharacter::ExecuteThrow()
@@ -341,11 +370,11 @@ void AStealthSurvivalCharacter::ExecuteThrow()
 		return;
 	}
 	
-	const FRotator ControlRot = GetControlRotation();
-	const FRotator YawOnly(0.f, ControlRot.Yaw, 0.f);
+	const FRotator ActorRot = GetActorRotation();
+	const FRotator YawOnly(0.f, ActorRot.Yaw, 0.f);
 	const FVector SpawnLocation = GetActorLocation() + YawOnly.RotateVector(ThrowSpawnOffset);
-	
-	const FRotator LaunchRot(ControlRot.Pitch + ThrowPitchOffset, ControlRot.Yaw, 0.f);
+
+	const FRotator LaunchRot(ActorRot.Pitch + ThrowPitchOffset, ActorRot.Yaw, 0.f);
 	const FVector LaunchVelocity = LaunchRot.Vector() * ThrowSpeed;
 	
 	FActorSpawnParameters SpawnParams;
@@ -383,7 +412,7 @@ UAISense_Sight::EVisibilityResult AStealthSurvivalCharacter::CanBeSeenFrom(
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(
 		Hit, Context.ObserverLocation, TargetLocation, ECC_Visibility, Params
 	);
-	
+
 	OutNumberOfLoSChecksPerformed = 1;
 	
 	if (bHit)

@@ -124,7 +124,7 @@ void AStealthDoor::OnEndFocus()
 
 void AStealthDoor::OpenForAI()
 {
-      if (!bIsOpen)
+      if (!bIsOpen && RequiredKeyId.IsNone())
       {
             OpenDoor();
       }

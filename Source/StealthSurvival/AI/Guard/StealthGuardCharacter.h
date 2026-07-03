@@ -8,6 +8,7 @@
 
 class UBehaviorTree;
 class UStaticMeshComponent;
+class UWidgetComponent;
 
 UCLASS(abstract)
 class AStealthGuardCharacter : public ACharacter, public IGenericTeamAgentInterface
@@ -20,7 +21,9 @@ public:
 	const TArray<TObjectPtr<AActor>>& GetPatrolPoints() const { return PatrolPoints; }
 	
 	void Die();
-	
+
+	void SetTakedownAvailable(bool bAvailable);
+
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override { TeamId = NewTeamID; }
 	
 	virtual FGenericTeamId GetGenericTeamId() const override { return TeamId; }
@@ -53,6 +56,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Vision")
 	TObjectPtr<UStaticMeshComponent> VisionConeMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="AI")
+	TObjectPtr<UWidgetComponent> TakedownPrompt;
 
 	UPROPERTY(EditDefaultsOnly, Category="Vision")
 	FLinearColor UnawareColor = FLinearColor(0.1f, 1.f, 0.2f);

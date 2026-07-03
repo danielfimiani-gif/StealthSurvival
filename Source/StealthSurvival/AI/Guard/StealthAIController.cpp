@@ -80,6 +80,12 @@ void AStealthAIController::OnPossess(APawn* InPawn)
 	RunBehaviorTree(BT);
 }
 
+void AStealthAIController::OnUnPossess()
+{
+	SetWatchingPlayer(false);
+	Super::OnUnPossess();
+}
+
 void AStealthAIController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	SetWatchingPlayer(false);

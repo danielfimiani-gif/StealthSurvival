@@ -15,8 +15,10 @@ class UCameraComponent;
 class UInputAction;
 class UAIPerceptionStimuliSourceComponent;
 class AStealthThrowable;
+class AStealthGuardCharacter;
 class UAbilitySystemComponent;
 class UGameplayAbility;
+class UAnimMontage;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -99,6 +101,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Combat", meta=(ClampMin="0"))
 	float TakeDownRearDotThreshold = -0.3f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Stealth|Combat")
+	TObjectPtr<UAnimMontage> TakeDownMontage;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Throw")
 	TSubclassOf<AStealthThrowable> ThrowableClass;
@@ -253,6 +258,9 @@ private:
 	
 	void Interact();
 	void ExitHidingSpot();
+
+	AStealthGuardCharacter* FindTakedownTarget() const;
+	TWeakObjectPtr<class AStealthGuardCharacter> CurrentTakedownTarget;
 	
 	bool bIsHidden = false;
 	FTransform PreHideTransform;
