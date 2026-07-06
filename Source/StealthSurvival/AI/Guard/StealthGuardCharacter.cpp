@@ -74,6 +74,7 @@ void AStealthGuardCharacter::Die()
 			Brain->StopLogic(TEXT("Killed by takedown"));
 		}
 		AIController->UnPossess();
+		AIController->Destroy();
 	}
 	
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
