@@ -28,7 +28,7 @@ AStealthGuardCharacter::AStealthGuardCharacter()
 
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
-		Move->MaxWalkSpeed = PatrolSpeed;
+		Move->MaxWalkSpeed = GetPatrolSpeed();
 	}
 }
 
@@ -38,7 +38,7 @@ void AStealthGuardCharacter::OnConstruction(const FTransform& Transform)
 
 	if (VisionConeMesh != nullptr)
 	{
-		VisionConeMesh->SetScalarParameterValueOnMaterials(TEXT("Halfangle"), SightHalfAngle);
+		VisionConeMesh->SetScalarParameterValueOnMaterials(TEXT("Halfangle"), GetSightHalfAngle());
 	}
 }
 
@@ -48,7 +48,7 @@ void AStealthGuardCharacter::BeginPlay()
 
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
-		Move->MaxWalkSpeed = PatrolSpeed;
+		Move->MaxWalkSpeed = GetPatrolSpeed();
 	}
 }
 
@@ -116,7 +116,7 @@ void AStealthGuardCharacter::SetAlertState(EStealthAlertState NewState)
 
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
-		Move->MaxWalkSpeed = (NewState == EStealthAlertState::Alerted) ? ChaseSpeed : PatrolSpeed;
+		Move->MaxWalkSpeed = (NewState == EStealthAlertState::Alerted) ? GetChaseSpeed() : GetPatrolSpeed();
 	}
 
 	if (VisionConeMesh == nullptr)
@@ -124,18 +124,21 @@ void AStealthGuardCharacter::SetAlertState(EStealthAlertState NewState)
 		return;
 	}
 	
-	FLinearColor Color = UnawareColor;
-	switch (NewState)
-	{
-	case EStealthAlertState::Suspicious:
-		Color = SuspiciousColor;
-		break;
-	case EStealthAlertState::Alerted:
-		Color = AlertedColor;
-		break;
-	default:
-		break;
-	}
-	
+	const FLinearColor Color = GetAlertColor(NewState);
 	VisionConeMesh->SetVectorParameterValueOnMaterials(TEXT("ConeColor"), FVector(Color.R, Color.G, Color.B));
 }
+
+FLinearColor AStealthGuardCharacter::GetAlertColor(EStealthAlertState State) const
+{
+	const FLinearColor Unaware = GuardConfig ? GuardConfig->UnawareColor : UnawareColor;
+	const FLinearColor Suspicious = GuardConfig ? GuardConfig->SuspiciousColor : SuspiciousColor;
+	const FLinearColor Alerted = GuardConfig ? GuardConfig->AlertedColor : AlertedColor;
+
+	switch (State)
+	{
+		case EStealthAlertState::Suspicious: return Suspicious;
+		case EStealthAlertState::Alerted: return Alerted;
+		default: return Unaware;
+	}
+}
+

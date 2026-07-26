@@ -24,6 +24,8 @@ void UInteractableComponent::BeginPlay()
 		PromptWidget->SetDrawAtDesiredSize(true);
 		PromptWidget->SetRelativeLocation(PromptOffset);
 		PromptWidget->SetVisibility(false);
+		
+		PromptWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 

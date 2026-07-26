@@ -242,7 +242,6 @@ void AStealthSurvivalCharacter::UpdateMovementSpeed()
 
 float AStealthSurvivalCharacter::GetCurrentNoiseRange() const
 {
-	if (bIsCrouched) return CrouchNoiseRange;
 	if (bIsSprinting) return RunNoiseRange;
 	return WalkNoiseRange;
 }

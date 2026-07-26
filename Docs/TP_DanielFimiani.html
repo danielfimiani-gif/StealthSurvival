@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>TP Final — StealthSurvival — Daniel Fimiani</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #1c2430; line-height: 1.5; font-size: 11.5pt; margin: 0;
+  }
+  h1 { font-size: 22pt; color: #16324f; margin: 0 0 2pt; }
+  h1 + .sub { font-size: 13pt; color: #3a6ea5; font-weight: 600; margin: 0 0 14pt; }
+  h2 {
+    font-size: 14pt; color: #16324f; margin: 20pt 0 6pt;
+    border-bottom: 2px solid #3a6ea5; padding-bottom: 3pt; page-break-after: avoid;
+  }
+  h3 { font-size: 12pt; color: #2b4a63; margin: 12pt 0 4pt; page-break-after: avoid; }
+  p { margin: 0 0 8pt; }
+  ul { margin: 0 0 8pt; padding-left: 20pt; }
+  li { margin: 0 0 4pt; }
+  strong { color: #16324f; }
+  code {
+    font-family: "Consolas", "Courier New", monospace; font-size: 10pt;
+    background: #eef2f7; color: #b5316a; padding: 1px 4px; border-radius: 3px;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0 12pt; font-size: 10.5pt; }
+  th, td { border: 1px solid #c6d2e0; padding: 5pt 8pt; text-align: left; vertical-align: top; }
+  th { background: #16324f; color: #fff; }
+  tr:nth-child(even) td { background: #f3f6fa; }
+  .meta td:first-child { background: #eef2f7; font-weight: 600; width: 30%; }
+  em { color: #555; }
+</style>
+</head>
+<body>
+
+<h1>StealthSurvival</h1>
+<div class="sub">Game Design Document — TP Final de Programación con Motores de Videojuegos II</div>
+
+<table class="meta">
+  <tr><td>Título</td><td>StealthSurvival</td></tr>
+  <tr><td>Autor</td><td>Daniel Fimiani</td></tr>
+  <tr><td>Motor</td><td>Unreal Engine 5.6 (C++)</td></tr>
+  <tr><td>Género</td><td>Stealth / Infiltración top-down</td></tr>
+  <tr><td>Modo</td><td>Un jugador</td></tr>
+  <tr><td>Instancia</td><td>Examen Final de Programación con Motores de Videojuegos II</td></tr>
+</table>
+
+<h2>1. Descripción</h2>
+<p><strong>StealthSurvival</strong> es un juego de infiltración en un único nivel cerrado, con cámara top-down. El jugador controla a un intruso que debe <strong>robar un objetivo</strong> (unos planos custodiados) y <strong>escapar con ellos a la zona segura</strong>, sin ser detectado por los guardias y las cámaras que vigilan el recinto. El acceso está bloqueado por puertas que exigen encontrar antes una <strong>tarjeta de acceso</strong> y un <strong>código de escape</strong>, por lo que la partida es también un recorrido de exploración con gating.</p>
+<p>No hay combate frontal: la fuerza del jugador no está en pelear sino en <strong>leer los patrones de vigilancia</strong>, moverse en silencio, usar el entorno como cobertura y neutralizar amenazas por la espalda cuando no queda otra. Cada perceptor que te ve suma a una <strong>barra de detección global</strong>; si se llena, la partida se pierde.</p>
+<p><strong>Referencias de Game Design:</strong> la propuesta toma la tensión de sigilo de <em>Metal Gear Solid</em> (conos de visión, alerta progresiva, distracciones sonoras), el planteo top-down de infiltración de <em>Monaco</em> y <em>Commandos</em>, y la economía de riesgo de <em>Mark of the Ninja</em> (el jugador siempre sabe cuánto ruido hace y qué tan visible está).</p>
+<p><strong>Fantasía del jugador:</strong> ser el fantasma que entra, toma lo que vino a buscar y desaparece sin que nadie sepa que estuvo ahí.</p>
+
+<h2>2. Actores</h2>
+<h3>Jugador</h3>
+<ul>
+  <li><strong>Intruso</strong> (<code>AStealthSurvivalCharacter</code>): personaje controlable. Se mueve en tres registros (caminar / correr / agacharse), cada uno con su velocidad y <strong>radio de ruido</strong>. Emite estímulos de sonido y de vista que la IA percibe. Puede interactuar, hacer eliminaciones silenciosas, arrojar distracciones y volverse invisible (GAS).</li>
+</ul>
+<h3>Enemigos (IA autónoma) — al menos 3 en el nivel</h3>
+<ul>
+  <li><strong>Guardias</strong> (<code>AStealthGuardCharacter</code> + <code>AStealthAIController</code>): enemigo principal, gobernado por un <strong>Behavior Tree</strong>. Patrulla por NavMesh, percibe por vista y oído, y escala su alerta (<strong>Unaware → Suspicious → Alerted</strong>). Investiga ruidos, persigue y abre puertas. Su <strong>cono de visión</strong> cambia de color (verde / amarillo / rojo). Se puede eliminar por la espalda. Sus parámetros se leen de un <strong>Data Asset</strong>, lo que permite crear tipos de guardia sin tocar código.</li>
+  <li><strong>Cámaras de seguridad</strong> (<code>AStealthSecurityCamera</code>): segundo perceptor, gobernado por un <strong>State Tree</strong>. Detección distinta: <strong>solo visión</strong>. Barre un arco fijo; al verte contribuye a la detección. Se puede desactivar desde un interruptor.</li>
+</ul>
+<h3>Actores del mundo</h3>
+<ul>
+  <li><strong>Objetivo</strong> (<code>AStealthObjective</code>): los planos a robar; al tomarlos habilita el escape.</li>
+  <li><strong>Zona de extracción</strong> (<code>AStealthExtractionZone</code>): la zona segura / salida.</li>
+  <li><strong>Tarjeta, código y puertas</strong> (<code>AStealthKey</code>, <code>AStealthDoor</code>): gating de acceso.</li>
+  <li><strong>Arbusto y escondite</strong> (<code>AStealthCoverBush</code>, <code>AStealthHidingSpot</code>): cobertura y ocultación.</li>
+  <li><strong>Interruptor de cámara</strong> (<code>AStealthCameraSwitch</code>) y <strong>objeto arrojadizo</strong> (<code>AStealthThrowable</code>): desactivar cámaras y distraer guardias.</li>
+</ul>
+
+<h2>3. Mecánicas (implementadas en C++)</h2>
+<p>Más de siete mecánicas jugables, integradas entre sí y parte activa del núcleo:</p>
+<ul>
+  <li><strong>Locomoción stealth contextual.</strong> Caminar / correr / agacharse, cada modo con su velocidad y su <strong>radio de ruido</strong>. Agachado es silencioso; correr se escucha lejos.</li>
+  <li><strong>Sistema de detección por IA.</strong> Perceptores con <strong>AI Perception</strong>; cada uno que te ve cuenta como "watcher" y una <strong>barra de detección global</strong> sube/baja.</li>
+  <li><strong>Eliminación silenciosa (takedown).</strong> Por detrás de un guardia (validado por producto punto y trace), neutralización con montage.</li>
+  <li><strong>Distracción arrojadiza.</strong> Un objeto que al impactar <strong>emite sonido</strong>; los guardias usan <strong>EQS</strong> para elegir un punto de inspección e ir a investigar.</li>
+  <li><strong>Coberturas y escondites.</strong> Arbustos (cobertura al agacharse) y muebles (ocultación total). La cámara aplica <strong>fade de oclusión</strong>.</li>
+  <li><strong>Sistema llave → puerta.</strong> Tarjeta de acceso y código de escape que abren puertas; gating del recorrido.</li>
+  <li><strong>Interruptor de cámaras.</strong> Desactiva cámaras enlazadas.</li>
+  <li><strong>Invisibilidad (GAS).</strong> Habilidad activa con el <strong>Gameplay Ability System</strong> (<code>UGA_Invisibility</code>): por un tiempo la IA no te ve. Con cooldown en el HUD.</li>
+</ul>
+
+<h2>4. Metas y obstáculos</h2>
+<p><strong>Meta principal:</strong> conseguir la tarjeta, robar los planos, encontrar el código y escapar a la zona de extracción con los planos.</p>
+<p><strong>Sub-metas / gating:</strong> tarjeta → puerta de los planos; código → puerta de salida. Desactivar cámaras, aprender rutas de patrulla.</p>
+<p><strong>Obstáculos:</strong> guardias con conos de visión y oído; cámaras de visión fija; puertas con llave; y la propia <strong>barra de detección</strong>. La <strong>dificultad</strong> elegida en el menú regula qué tan rápido sube esa barra.</p>
+<p><strong>Tensión central:</strong> velocidad vs. silencio. Correr llega antes pero hace ruido; agacharse es seguro pero lento.</p>
+
+<h2>5. Reglas</h2>
+<ul>
+  <li>El jugador <strong>gana</strong> si entra a la zona de extracción <strong>teniendo los planos</strong>.</li>
+  <li>El jugador <strong>pierde</strong> si la <strong>barra de detección se llena</strong> (<code>DetectionLevel</code> = 1.0).</li>
+  <li>La detección <strong>sube</strong> mientras al menos un perceptor te ve y <strong>baja</strong> cuando ninguno te ve. La tasa se multiplica por la <strong>dificultad</strong> (Fácil / Normal / Difícil).</li>
+  <li>Un guardia solo se elimina <strong>por la espalda</strong> y en rango; queda fuera de juego.</li>
+  <li>Las puertas con llave no se abren sin la llave/código correspondiente.</li>
+  <li>El estado de la partida es explícito: <strong>Playing → Won / Lost</strong> (<code>EStealthMatchState</code>).</li>
+  <li>El <strong>tiempo de partida</strong> se cronometra; al ganar se registra y se guarda el <strong>mejor tiempo</strong>.</li>
+</ul>
+
+<h2>6. Espacio (nivel y flujo de juego)</h2>
+<p><strong>Un único nivel de gameplay</strong> (<code>Lvl_Stealth</code>): recinto cerrado con zonas de patrulla, mobiliario y arbustos que dan cobertura, los planos custodiados, puertas con llave y la zona de extracción como zona segura.</p>
+<p><strong>Flujo de juego completo:</strong></p>
+<ul>
+  <li><strong>Menú Principal</strong> (<code>Lvl_MainMenu</code>, nivel separado) — Jugar / Salir y selección de <strong>dificultad</strong>; muestra el <strong>mejor tiempo</strong>. La transición se hace <strong>en C++</strong> (<code>UStealthMainMenuWidget::PlayGame</code> → <code>OpenLevel</code> → <code>Lvl_Stealth</code>).</li>
+  <li><strong>Gameplay</strong> — el ciclo de infiltración, con <strong>HUD</strong> activo (<code>UStealthHUDWidget</code> / <code>WBP_HUD</code>): barra de detección, objetivo actual (del Data Table), <strong>timer</strong>, ocultamiento y cooldown de invisibilidad.</li>
+  <li><strong>Pantalla final</strong> (<code>UStealthEndScreenWidget</code>) — al ganar o perder, pausa y muestra el resultado con el <strong>tiempo de la partida</strong> y el <strong>récord</strong>, con <strong>Reintentar</strong> o <strong>Volver al menú</strong>. Rejugabilidad sin reiniciar la aplicación.</li>
+</ul>
+
+<h2>7. Inteligencia Artificial (detalle técnico)</h2>
+<table>
+  <tr><th>Herramienta</th><th>Uso en el proyecto</th></tr>
+  <tr><td>NavMesh + Pathfinding</td><td>Patrullaje y persecución (Runtime Generation: Dynamic).</td></tr>
+  <tr><td>Behavior Tree</td><td>Cerebro del guardia (patrulla → sospecha → alerta → persecución).</td></tr>
+  <tr><td>State Tree</td><td>Cerebro de la cámara (detección solo por visión).</td></tr>
+  <tr><td>AI Perception</td><td>Vista + oído en guardias; solo vista en cámaras.</td></tr>
+  <tr><td>EQS</td><td>Punto de inspección tras escuchar una distracción.</td></tr>
+  <tr><td>Smart Object</td><td>Puertas que la IA abre a su paso.</td></tr>
+  <tr><td>Teams (GenericTeamAgent)</td><td>Distingue jugador de IA para la percepción hostil.</td></tr>
+  <tr><td>AISightTargetInterface</td><td>El jugador decide su visibilidad (cover, escondite, invisibilidad).</td></tr>
+</table>
+<p>Los agentes son <strong>autónomos desde el inicio</strong>, reaccionan de forma <strong>clara y progresiva</strong>, y funcionan con <strong>múltiples instancias activas</strong> en simultáneo.</p>
+
+<h2>8. Arquitectura y buenas prácticas</h2>
+<h3>Gameplay Framework</h3>
+<p><code>AStealthSurvivalGameMode</code> (victoria/derrota, tick de detección, dificultad, timer) + <code>AStealthSurvivalGameState</code> (detección, objetivo, llaves, match state, tiempo) + <code>AStealthSurvivalPlayerController</code> (HUD, pantalla final, Enhanced Input).</p>
+<h3>Subsistemas (3, usando Game Instance Subsystem)</h3>
+<ul>
+  <li><strong><code>UStealthAlertSubsystem</code></strong> (<code>UWorldSubsystem</code>) — patrón <strong>Observer</strong>: difunde alertas entre las IAs por delegate multicast.</li>
+  <li><strong><code>UStealthItemRegistrySubsystem</code></strong> (<code>UGameInstanceSubsystem</code>) — carga el <strong>Data Table</strong> de ítems y sirve su info (nombre, texto de HUD, ícono).</li>
+  <li><strong><code>UStealthProgressSubsystem</code></strong> (<code>UGameInstanceSubsystem</code>) — persiste la <strong>dificultad</strong> y el <strong>mejor tiempo</strong> con <strong>SaveGame</strong> a disco.</li>
+</ul>
+<h3>Data-driven (Data Assets / Data Tables)</h3>
+<ul>
+  <li><strong><code>DT_Items</code></strong> (<code>FStealthItemData : FTableRowBase</code>) — info de ítems; el DataTable se declara en <code>UStealthGameSettings</code> (<code>UDeveloperSettings</code>).</li>
+  <li><strong><code>UStealthGuardConfig</code></strong> (<code>UPrimaryDataAsset</code>) — configuración de tipos de guardia.</li>
+  <li><strong><code>UStealthGameSave</code></strong> (<code>USaveGame</code>) — datos persistidos (dificultad, récord, stats).</li>
+</ul>
+<h3>GAS</h3>
+<p>Habilidad de <strong>invisibilidad</strong> (<code>UGA_Invisibility</code>) con cooldown vía Gameplay Effect, integrada al <code>UAbilitySystemComponent</code> del jugador y al HUD.</p>
+<h3>Asset Streaming</h3>
+<p>El <code>ItemRegistrySubsystem</code> carga el DataTable y <strong>precarga los íconos por streaming asíncrono</strong> (<code>FStreamableManager::RequestAsyncLoad</code> con <code>TSoftObjectPtr</code>), sin bloquear la carga del nivel.</p>
+<h3>Patrones de diseño (3+)</h3>
+<ul>
+  <li><strong>Observer</strong> — <code>UStealthAlertSubsystem</code> (delegate multicast entre IAs).</li>
+  <li><strong>State</strong> — State Tree de la cámara + <code>EStealthAlertState</code> de los guardias.</li>
+  <li><strong>Component / Composición</strong> — <code>UInteractableComponent</code> reutilizable en objetivo, llaves y muebles.</li>
+  <li>Complementan: <strong>Interface/Strategy</strong> (<code>IInteractable</code> / <code>IAISightTargetInterface</code>) y <strong>Subsystem/Singleton</strong>.</li>
+</ul>
+<h3>Comunicación entre clases C++</h3>
+<p>Interfaces (<code>IInteractable</code>, <code>IAISightTargetInterface</code>, <code>IGenericTeamAgentInterface</code>), delegados multicast (Observer) y referencias validadas con guardas de puntero.</p>
+<h3>Enhanced Input</h3>
+<p>Todas las acciones (mover, correr, agachar, takedown, arrojar, interactuar, invisibilidad) mapeadas con Enhanced Input.</p>
+<h3>Animación</h3>
+<p><code>UStealthAnimInstance</code> con estados diferenciados (Idle / Walk / Run / Crouch).</p>
+
+<h2>9. Git y control de versiones</h2>
+<p>Proyecto versionado en Git (repositorio <strong>StealthSurvival</strong>), con <strong>Git LFS</strong> para los assets binarios de Unreal. El plugin RiderLink se mantiene fuera del repo (cada dev lo instala localmente). Assets acotados a lo estrictamente usado (estilo low-poly) para mantener el repo liviano dentro del presupuesto de LFS.</p>
+
+<h2>10. Mapeo a los criterios de evaluación</h2>
+<table>
+  <tr><th>Criterio (mínimo)</th><th>Dónde se cumple</th></tr>
+  <tr><td>Ejecuta sin errores críticos</td><td>Flujo completo menú → gameplay → pantalla final probado.</td></tr>
+  <tr><td>≥ 7 mecánicas funcionales</td><td>8 mecánicas (sección 3).</td></tr>
+  <tr><td>Gameplay Framework</td><td>GameMode / GameState / PlayerController / HUD (sección 8).</td></tr>
+  <tr><td>Comunicación entre clases C++</td><td>Interfaces + delegados + referencias validadas.</td></tr>
+  <tr><td>Data Assets o Data Tables</td><td><code>DT_Items</code> + <code>UStealthGuardConfig</code> + <code>UStealthGameSave</code>.</td></tr>
+  <tr><td>GAS</td><td><code>UGA_Invisibility</code> con cooldown.</td></tr>
+  <tr><td>≥ 3 patrones de diseño</td><td>Observer, State, Component (+ Interface, Subsystem).</td></tr>
+  <tr><td>3 subsistemas + Game Instance Subsystem</td><td>Alert (World) + ItemRegistry + Progress (GameInstance).</td></tr>
+  <tr><td>Documentación detallada</td><td>Este documento.</td></tr>
+  <tr><td>Build del juego</td><td>Build empaquetada para Windows (entregada aparte).</td></tr>
+</table>
+<table>
+  <tr><th>Criterio (extra)</th><th>Dónde se cumple</th></tr>
+  <tr><td>Asset Streaming</td><td>Carga asíncrona de íconos vía <code>StreamableManager</code> + <code>TSoftObjectPtr</code>.</td></tr>
+  <tr><td>IA (NavMesh / State Tree / Perception)</td><td>Sección 7 (BT, ST, EQS, Smart Objects, Teams).</td></tr>
+  <tr><td>Validación de punteros / control de estados</td><td>Guardas de puntero en todo el código; <code>EStealthMatchState</code>.</td></tr>
+  <tr><td>Unreal Coding Standards / legibilidad</td><td>Nomenclatura UE, sin lógica muerta, headers acotados.</td></tr>
+</table>
+
+<h2>11. Diversión</h2>
+<p>El corazón divertido de StealthSurvival es la <strong>tensión del casi-me-ven</strong>: leer un cono de visión, calcular si me da el tiempo, tirar una distracción en el momento justo y colarme por el hueco que dejó el guardia. El jugador siempre tiene información clara (ruido, visibilidad, color del cono, barra de detección, timer) para decidir, y el juego premia la paciencia y la lectura del entorno por sobre los reflejos. La invisibilidad y el takedown dan la válvula de escape cuando el plan se rompe, manteniendo la sensación de estar siempre al borde pero nunca sin salida.</p>
+
+</body>
+</html>

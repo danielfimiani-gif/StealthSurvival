@@ -23,7 +23,8 @@ public class StealthSurvival : ModuleRules
 			"NavigationSystem",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"DeveloperSettings"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime" });

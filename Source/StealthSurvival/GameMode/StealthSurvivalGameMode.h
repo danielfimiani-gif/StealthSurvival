@@ -14,6 +14,8 @@ class AStealthSurvivalGameMode : public AGameModeBase
 public:
 	AStealthSurvivalGameMode();
 	
+	virtual void BeginPlay() override;
+	
 	virtual void Tick(float DeltaSecondsDeltaTime) override;
 	
 	void AddWatcher();
@@ -28,6 +30,8 @@ protected:
 	void TriggerLose();
 	
 	AStealthSurvivalGameState* GetStealthSurvivalGameState() const;
+	
+	class UStealthProgressSubsystem* GetProgressSubsystem() const;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Detection", meta=(ClampMin = "0"))
 	float DetectionRiseRate = 0.5f;

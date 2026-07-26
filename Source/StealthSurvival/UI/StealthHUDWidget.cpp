@@ -3,6 +3,8 @@
 #include "GameMode/StealthSurvivalGameState.h"
 #include "Player/StealthSurvivalCharacter.h"
 #include "AbilitySystemComponent.h"
+#include "Subsystems/StealthItemRegistrySubsystem.h"
+#include "Engine/GameInstance.h"
 
 float UStealthHUDWidget::GetDetectionLevel() const
 {
@@ -13,27 +15,39 @@ float UStealthHUDWidget::GetDetectionLevel() const
 FText UStealthHUDWidget::GetObjectiveText() const
 {
 	const AStealthSurvivalGameState* GS = GetStealthGameState();
-	if (GS == nullptr)
+
+	FName ActiveId;
+	FText Fallback;
+	if (GS == nullptr || !GS->HasKey(AccessCardId))
 	{
-		return CardObjectiveText;
+		ActiveId = AccessCardId;
+		Fallback = CardObjectiveText;
+	}
+	else if (!GS->HasObjective())
+	{
+		ActiveId = ObjectiveItemId;
+		Fallback = StealObjectiveText;
+	}
+	else if (!GS->HasKey(EscapeCodeId))
+	{
+		ActiveId = EscapeCodeId;
+		Fallback = FindCodeObjectiveText;
+	}
+	else
+	{
+		ActiveId = EscapeStepId;
+		Fallback = EscapeObjectiveText;
 	}
 
-	if (!GS->HasKey(AccessCardId))
+	if (const UStealthItemRegistrySubsystem* Registry = GetItemRegistry())
 	{
-		return CardObjectiveText;
+		const FText Text = Registry->GetObjectiveText(ActiveId);
+		if (!Text.IsEmpty())
+		{
+				return Text;
+		}
 	}
-
-	if (!GS->HasObjective())
-	{
-		return StealObjectiveText;
-	}
-
-	if (!GS->HasKey(EscapeCodeId))
-	{
-		return FindCodeObjectiveText;
-	}
-
-	return EscapeObjectiveText;
+	return Fallback;
 }
 
 bool UStealthHUDWidget::IsPlayerConcealed() const
@@ -91,4 +105,20 @@ AStealthSurvivalGameState* UStealthHUDWidget::GetStealthGameState() const
 AStealthSurvivalCharacter* UStealthHUDWidget::GetStealthPlayer() const
 {
 	return Cast<AStealthSurvivalCharacter>(GetOwningPlayerPawn());
+}
+
+FText UStealthHUDWidget::GetMatchTimeText() const
+{
+	const AStealthSurvivalGameState* GS = GetStealthGameState();
+	const float T = GS != nullptr ? GS->GetMatchTime() : 0.f;
+	
+	const int32 Minutes = FMath::FloorToInt(T / 60.f);
+	const int32 Seconds = FMath::FloorToInt(T) % 60;
+	return FText::FromString(FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds));
+}
+
+const UStealthItemRegistrySubsystem* UStealthHUDWidget::GetItemRegistry() const
+{
+	const UGameInstance* GI = GetGameInstance();
+	return GI != nullptr ? GI->GetSubsystem<UStealthItemRegistrySubsystem>() : nullptr;
 }

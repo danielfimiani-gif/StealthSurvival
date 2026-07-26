@@ -61,6 +61,16 @@ void AStealthSecurityCamera::BeginPlay()
 		HomeYaw = CameraPivot->GetRelativeRotation().Yaw;
 	}
 
+	if (SightConfig != nullptr && PerceptionComponent != nullptr)
+	{
+		SightConfig->SightRadius = SightRadius;
+		SightConfig->LoseSightRadius = LoseSightRadius;
+		SightConfig->PeripheralVisionAngleDegrees = PeripheralVisionAngle;
+		SightConfig->SetMaxAge(SightMaxAge);
+		PerceptionComponent->ConfigureSense(*SightConfig);
+		PerceptionComponent->RequestStimuliListenerUpdate();
+	}
+	
 	if (PerceptionComponent != nullptr)
 	{
 		PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AStealthSecurityCamera::OnPerceptionUpdated);

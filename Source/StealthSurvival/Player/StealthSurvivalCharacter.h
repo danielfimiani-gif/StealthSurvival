@@ -92,10 +92,7 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Noise", meta=(ClampMin="0"))
 	float RunNoiseRange = 1500.f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Noise", meta=(ClampMin="0"))
-	float CrouchNoiseRange = 200.f;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Combat", meta=(ClampMin="0"))
 	float TakeDownTraceDistance = 200.f;
 	

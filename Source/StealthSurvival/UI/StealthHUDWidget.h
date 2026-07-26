@@ -6,6 +6,7 @@
 
 class AStealthSurvivalGameState;
 class AStealthSurvivalCharacter;
+class UStealthItemRegistrySubsystem;
 
 UCLASS(Abstract)
 class UStealthHUDWidget : public UUserWidget
@@ -28,6 +29,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="HUD")
 	bool IsPlayerInvisible() const;
 
+	UFUNCTION(BlueprintPure, Category="HUD")
+	FText GetMatchTimeText() const;
+	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="HUD")
 	FText CardObjectiveText = FText::FromString(TEXT("Obtené la tarjeta de acceso"));
@@ -47,7 +51,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="HUD")
 	FName EscapeCodeId = TEXT("EscapeCode");
 	
+	UPROPERTY(EditDefaultsOnly, Category="HUD")
+	FName ObjectiveItemId = TEXT("Plans");
+
+	UPROPERTY(EditDefaultsOnly, Category="HUD")
+	FName EscapeStepId = TEXT("Escape");
+	
 private:
 	AStealthSurvivalGameState* GetStealthGameState() const;
 	AStealthSurvivalCharacter* GetStealthPlayer() const;
+	const UStealthItemRegistrySubsystem* GetItemRegistry() const;
 };

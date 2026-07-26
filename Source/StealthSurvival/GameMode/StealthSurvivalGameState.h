@@ -36,6 +36,11 @@ public:
 	
 	void AddKey(FName KeyId) { CollectedKeys.Add(KeyId); }
 	
+	UFUNCTION(BlueprintPure, Category="Match")
+	float GetMatchTime() const { return MatchTime; }
+	
+	void AddMatchTime(float Delta) { MatchTime += Delta; }
+	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category="Match")
 	float DetectionLevel = 0.f;
@@ -48,4 +53,7 @@ protected:
 	
 	UPROPERTY()
 	TSet<FName> CollectedKeys;
+	
+	UPROPERTY(BlueprintReadOnly, Category="Match")
+	float MatchTime = 0.f;
 };

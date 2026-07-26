@@ -2,11 +2,23 @@
 #include "StealthSurvivalGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/StealthSurvivalPlayerController.h"
+#include "Subsystems/StealthProgressSubsystem.h"
+#include "Engine/GameInstance.h"
 
 AStealthSurvivalGameMode::AStealthSurvivalGameMode()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	GameStateClass = AStealthSurvivalGameState::StaticClass();
+}
+
+void AStealthSurvivalGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (const UStealthProgressSubsystem* Progress = GetProgressSubsystem())
+	{
+		DetectionRiseRate *= Progress->GetDetectionMultiplier();
+	}
 }
 
 AStealthSurvivalGameState* AStealthSurvivalGameMode::GetStealthSurvivalGameState() const
@@ -28,6 +40,8 @@ void AStealthSurvivalGameMode::Tick(float DeltaSeconds)
 	{
 		return;
 	}
+	
+	GS->AddMatchTime(DeltaSeconds);
 	
 	const float Delta = (ActiveWatchers > 0)
 		? DetectionRiseRate * DeltaSeconds
@@ -84,6 +98,11 @@ void AStealthSurvivalGameMode::TriggerWin()
 	
 	GS->SetMatchState(EStealthMatchState::Won);
 	
+	if (UStealthProgressSubsystem* Progress = GetProgressSubsystem())
+	{
+		Progress->RecordMatchResult(true, GS->GetMatchTime());
+	}
+	
 	if (AStealthSurvivalPlayerController* PC = Cast<AStealthSurvivalPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 	{
 		PC->ShowEndScreen();
@@ -100,6 +119,12 @@ void AStealthSurvivalGameMode::TriggerLose()
 	
 	GS->SetMatchState(EStealthMatchState::Lost);
 	GS->SetDetectionLevel(1.f);
+	
+	if (UStealthProgressSubsystem* Progress = GetProgressSubsystem())
+	{
+		Progress->RecordMatchResult(false, -1.f);
+	}
+	
 	if (AStealthSurvivalPlayerController* PC = Cast<AStealthSurvivalPlayerController>(UGameplayStatics::GetPlayerController(this, 0)))
 	{
 		PC->ShowEndScreen();
@@ -112,4 +137,10 @@ void AStealthSurvivalGameMode::NotifyKeyCollected(FName KeyId)
 	{
 		GS->AddKey(KeyId);
 	}
+}
+
+class UStealthProgressSubsystem* AStealthSurvivalGameMode::GetProgressSubsystem() const
+{
+	UGameInstance* GI = GetGameInstance();
+	return GI != nullptr ? GI->GetSubsystem<UStealthProgressSubsystem>() : nullptr;
 }

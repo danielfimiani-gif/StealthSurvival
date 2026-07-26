@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "GenericTeamAgentInterface.h"
 #include "StealthAlertState.h"
+#include "Data/StealthGuardConfig.h"
 #include "StealthGuardCharacter.generated.h"
 
 class UBehaviorTree;
@@ -33,9 +34,13 @@ public:
 	
 	void SetAlertState(EStealthAlertState NewState);
 
-	float GetSightRange() const { return SightRange; }
-	float GetSightHalfAngle() const { return SightHalfAngle; }
-
+	float GetSightRange() const { return GuardConfig ? GuardConfig->SightRange : SightRange; }
+	float GetSightHalfAngle() const { return GuardConfig ? GuardConfig->SightHalfAngle : SightHalfAngle; }
+	float GetPatrolSpeed() const { return GuardConfig ? GuardConfig->PatrolSpeed : PatrolSpeed; }
+	float GetChaseSpeed() const { return GuardConfig ? GuardConfig->ChaseSpeed : ChaseSpeed; }
+	
+	FLinearColor GetAlertColor(EStealthAlertState State) const;
+	
 protected:
 	AStealthGuardCharacter();
 
@@ -47,6 +52,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<class UBehaviorTree> BehaviorTree;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="AI")
+	TObjectPtr<UStealthGuardConfig> GuardConfig;
 	
 	UPROPERTY(EditDefaultsOnly, Category="AI", meta=(ClampMin="0"))
 	float DeathLifespan = 5.f;
