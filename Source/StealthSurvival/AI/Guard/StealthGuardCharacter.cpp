@@ -142,3 +142,46 @@ FLinearColor AStealthGuardCharacter::GetAlertColor(EStealthAlertState State) con
 	}
 }
 
+void AStealthGuardCharacter::Stun(float Duration)
+{
+	if (bIsDead || bIsStunned)
+	{
+		return;
+	}
+	
+	bIsStunned = true;
+	
+	if (AStealthAIController* AIController = Cast<AStealthAIController>(GetController()))
+	{
+		if (UBrainComponent* Brain = AIController->GetBrainComponent())
+		{
+			Brain->StopLogic(TEXT("Stunned"));
+		}
+	}
+	
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->StopMovementImmediately();
+		Move->DisableMovement();
+	}
+	
+	GetWorldTimerManager().SetTimer(StunTimerHandle, this, &AStealthGuardCharacter::EndStun, Duration, false);
+}
+
+void AStealthGuardCharacter::EndStun()
+{
+	bIsStunned = false;
+	
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->SetMovementMode(MOVE_Walking);
+	}
+	
+	if (AStealthAIController* AIController = Cast<AStealthAIController>(GetController()))
+	{
+		if (UBrainComponent* Brain = AIController->GetBrainComponent())
+		{
+			Brain->RestartLogic();
+		}
+	}
+}

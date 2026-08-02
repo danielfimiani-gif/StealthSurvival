@@ -14,7 +14,6 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
 class UAIPerceptionStimuliSourceComponent;
-class AStealthThrowable;
 class AStealthGuardCharacter;
 class UAbilitySystemComponent;
 class UGameplayAbility;
@@ -78,6 +77,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* InvisibilityAction;
 	
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* SmokeAction;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Locomotion", meta=(ClampMin="0"))
 	float WalkSpeed = 350.f;
 	
@@ -101,18 +103,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Stealth|Combat")
 	TObjectPtr<UAnimMontage> TakeDownMontage;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Throw")
-	TSubclassOf<AStealthThrowable> ThrowableClass;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Throw", meta=(ClampMin="0"))
-	float ThrowSpeed = 1500.f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Throw", meta=(ClampMin="-89", ClampMax="89"))
-	float ThrowPitchOffset = 20.f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Stealth|Throw")
-	FVector ThrowSpawnOffset = FVector(80.f,0.f, 50.f);
 
 public:
 	/** Constructor */
@@ -135,6 +125,9 @@ public:
 	void AddCoverSource() { ++CoverSourceCount; }
 	void RemoveCoverSource() { CoverSourceCount = FMath::Max(0, CoverSourceCount - 1); }
 	
+	void AddSmokeSource() { ++SmokeSourceCount; }	
+	void RemoveSmokeSource() { SmokeSourceCount = FMath::Max(0, SmokeSourceCount - 1); }
+	
 	void SetInteractableInRange(const TScriptInterface<IInteractable>& Interactable); 
 	void ClearInteractableInRange(const TScriptInterface<IInteractable>& Interactable);
 	void EnterHidingSpot(AActor* Spot, const FTransform& SlotTransform);
@@ -152,14 +145,15 @@ public:
 	UFUNCTION(BlueprintPure, Category="Stealth|Cover")
 	bool IsInvisible() const { return bIsInvisible; }
 	
+	UFUNCTION(BlueprintPure, Category="Stealth|Cover")
+	bool IsInSmoke() const { return SmokeSourceCount > 0; }
+	
 protected:
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 	void ExecuteTakeDown();
 	
-	void ExecuteThrow();
-
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
 
@@ -208,6 +202,7 @@ public:
 
 private:
 	void UpdateMovementSpeed();
+	
 	void AimAtCursor();
 	
 	void UpdateCameraPan(float DeltaSeconds);
@@ -216,6 +211,12 @@ private:
 	void UpdateCameraOcclusion();
 	
 	void SetOccluderFade(AActor* Occluder, float FadeValue);
+	
+	void ActivateThrow();
+	
+	void ActivateSmoke();
+	
+	void TryActivateAbilityByTag(const FName& TagName);
 	
 	UPROPERTY(EditDefaultsOnly, Category="Camera|Occlusion", meta=(ClampMin="0", ClampMax="1"))
 	float OccluderFadeOpacity = 0.3f;
@@ -252,6 +253,7 @@ private:
 	float NoiseEmissionInterval = 0.2f;
 	
 	int32 CoverSourceCount = 0;
+	int32 SmokeSourceCount = 0;
 	
 	void Interact();
 	void ExitHidingSpot();

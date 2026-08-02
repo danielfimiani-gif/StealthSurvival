@@ -12,7 +12,6 @@
 #include "StealthSurvival.h"
 #include "Perception/AISense_Hearing.h"
 #include "Guard/StealthGuardCharacter.h"
-#include "Items/StealthThrowable.h"
 #include "GameFramework/PlayerController.h"
 #include "Components/MeshComponent.h"
 #include "AbilitySystemComponent.h"
@@ -106,7 +105,10 @@ void AStealthSurvivalCharacter::SetupPlayerInputComponent(UInputComponent* Playe
 		EnhancedInputComponent->BindAction(TakeDownAction, ETriggerEvent::Started,this, &AStealthSurvivalCharacter::ExecuteTakeDown);
 		
 		// Throw
-		EnhancedInputComponent->BindAction(ThrowAction, ETriggerEvent::Started,this, &AStealthSurvivalCharacter::ExecuteThrow);
+		EnhancedInputComponent->BindAction(ThrowAction, ETriggerEvent::Started,this, &AStealthSurvivalCharacter::ActivateThrow);
+		
+		// Smoke
+		EnhancedInputComponent->BindAction(SmokeAction, ETriggerEvent::Started, this, &AStealthSurvivalCharacter::ActivateSmoke);
 	
 		// Hide
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &AStealthSurvivalCharacter::Interact);
@@ -225,6 +227,28 @@ void AStealthSurvivalCharacter::ToggleInvisibility()
 	{
 		AbilitySystemComponent->TryActivateAbilitiesByTag(InvisTags);
 	}
+}
+
+void AStealthSurvivalCharacter::TryActivateAbilityByTag(const FName& TagName)
+{
+	if (AbilitySystemComponent == nullptr)
+	{
+		return;
+	}
+	
+	FGameplayTagContainer TagContainer;
+	TagContainer.AddTag(FGameplayTag::RequestGameplayTag(TagName));
+	AbilitySystemComponent->TryActivateAbilitiesByTag(TagContainer);
+}
+
+void AStealthSurvivalCharacter::ActivateThrow()
+{
+	TryActivateAbilityByTag(FName("Ability.Throw"));
+}
+
+void AStealthSurvivalCharacter::ActivateSmoke()
+{
+	TryActivateAbilityByTag(FName("Ability.Smoke"));
 }
 
 void AStealthSurvivalCharacter::UpdateMovementSpeed()
@@ -356,45 +380,13 @@ void AStealthSurvivalCharacter::ExecuteTakeDown()
 	CurrentTakedownTarget = nullptr;
 }
 
-void AStealthSurvivalCharacter::ExecuteThrow()
-{
-	if (ThrowableClass == nullptr)
-	{
-		return;
-	}
-	
-	UWorld* World = GetWorld();
-	if (World == nullptr)
-	{
-		return;
-	}
-	
-	const FRotator ActorRot = GetActorRotation();
-	const FRotator YawOnly(0.f, ActorRot.Yaw, 0.f);
-	const FVector SpawnLocation = GetActorLocation() + YawOnly.RotateVector(ThrowSpawnOffset);
-
-	const FRotator LaunchRot(ActorRot.Pitch + ThrowPitchOffset, ActorRot.Yaw, 0.f);
-	const FVector LaunchVelocity = LaunchRot.Vector() * ThrowSpeed;
-	
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	SpawnParams.Owner = this;
-	SpawnParams.Instigator = this;
-	
-	AStealthThrowable* Throwable = World->SpawnActor<AStealthThrowable>(ThrowableClass, SpawnLocation, LaunchRot, SpawnParams);
-	if (Throwable != nullptr)
-	{
-		Throwable->Launch(LaunchVelocity);
-	}
-}
-
 UAISense_Sight::EVisibilityResult AStealthSurvivalCharacter::CanBeSeenFrom(
 	const FCanBeSeenFromContext& Context, 
 	FVector& OutSeenLocation, int32& OutNumberOfLoSChecksPerformed, 
 	int32& OutNumberOfAsyncLosCheckRequested, float& OutSightStrength, 
 	int32* UserData, const FOnPendingVisibilityQueryProcessedDelegate* Delegate)
 {
-	if (bIsHidden || bIsInvisible)
+	if (bIsHidden || bIsInvisible || IsInSmoke())
 	{
 		return UAISense_Sight::EVisibilityResult::NotVisible;
 	}

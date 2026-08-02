@@ -22,6 +22,11 @@ public:
 	const TArray<TObjectPtr<AActor>>& GetPatrolPoints() const { return PatrolPoints; }
 	
 	void Die();
+	
+	void Stun(float Duration);
+	
+	UFUNCTION(BlueprintPure, Category="AI")
+	bool IsStunned() const { return bIsStunned; }
 
 	void SetTakedownAvailable(bool bAvailable);
 
@@ -49,6 +54,10 @@ protected:
 	virtual void BeginPlay() override;
 	
 	bool bIsDead = false;
+	
+	void EndStun();
+	bool bIsStunned = false;
+	FTimerHandle StunTimerHandle;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	TObjectPtr<class UBehaviorTree> BehaviorTree;

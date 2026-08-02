@@ -49,18 +49,18 @@
 
 <h2>1. Descripción</h2>
 <p><strong>StealthSurvival</strong> es un juego de infiltración en un único nivel cerrado, con cámara top-down. El jugador controla a un intruso que debe <strong>robar un objetivo</strong> (unos planos custodiados) y <strong>escapar con ellos a la zona segura</strong>, sin ser detectado por los guardias y las cámaras que vigilan el recinto. El acceso está bloqueado por puertas que exigen encontrar antes una <strong>tarjeta de acceso</strong> y un <strong>código de escape</strong>, por lo que la partida es también un recorrido de exploración con gating.</p>
-<p>No hay combate frontal: la fuerza del jugador no está en pelear sino en <strong>leer los patrones de vigilancia</strong>, moverse en silencio, usar el entorno como cobertura y neutralizar amenazas por la espalda cuando no queda otra. Cada perceptor que te ve suma a una <strong>barra de detección global</strong>; si se llena, la partida se pierde.</p>
-<p><strong>Referencias de Game Design:</strong> la propuesta toma la tensión de sigilo de <em>Metal Gear Solid</em> (conos de visión, alerta progresiva, distracciones sonoras), el planteo top-down de infiltración de <em>Monaco</em> y <em>Commandos</em>, y la economía de riesgo de <em>Mark of the Ninja</em> (el jugador siempre sabe cuánto ruido hace y qué tan visible está).</p>
+<p>No hay combate frontal: la fuerza del jugador no está en pelear sino en <strong>leer los patrones de vigilancia</strong>, moverse en silencio, usar el entorno como cobertura y neutralizar amenazas por la espalda —o a distancia con un kunai aturdidor— cuando no queda otra. Cada perceptor que te ve suma a una <strong>barra de detección global</strong>; si se llena, la partida se pierde.</p>
+<p><strong>Referencias de Game Design:</strong> la propuesta toma la tensión de sigilo de <em>Metal Gear Solid</em> (conos de visión, alerta progresiva), el planteo top-down de infiltración de <em>Monaco</em> y <em>Commandos</em>, la economía de riesgo de <em>Mark of the Ninja</em> (el jugador siempre sabe cuánto ruido hace y qué tan visible está), y el arsenal no letal de sigilo (kunai aturdidor, humo) al estilo <em>Dishonored</em>.</p>
 <p><strong>Fantasía del jugador:</strong> ser el fantasma que entra, toma lo que vino a buscar y desaparece sin que nadie sepa que estuvo ahí.</p>
 
 <h2>2. Actores</h2>
 <h3>Jugador</h3>
 <ul>
-  <li><strong>Intruso</strong> (<code>AStealthSurvivalCharacter</code>): personaje controlable. Se mueve en tres registros (caminar / correr / agacharse), cada uno con su velocidad y <strong>radio de ruido</strong>. Emite estímulos de sonido y de vista que la IA percibe. Puede interactuar, hacer eliminaciones silenciosas, arrojar distracciones y volverse invisible (GAS).</li>
+  <li><strong>Intruso</strong> (<code>AStealthSurvivalCharacter</code>): personaje controlable. Se mueve en tres registros (caminar / correr / agacharse), cada uno con su velocidad y <strong>radio de ruido</strong>. Emite estímulos de sonido y de vista que la IA percibe. Puede interactuar, hacer eliminaciones silenciosas, arrojar un kunai aturdidor, tirar humo y volverse invisible (GAS).</li>
 </ul>
 <h3>Enemigos (IA autónoma) — al menos 3 en el nivel</h3>
 <ul>
-  <li><strong>Guardias</strong> (<code>AStealthGuardCharacter</code> + <code>AStealthAIController</code>): enemigo principal, gobernado por un <strong>Behavior Tree</strong>. Patrulla por NavMesh, percibe por vista y oído, y escala su alerta (<strong>Unaware → Suspicious → Alerted</strong>). Investiga ruidos, persigue y abre puertas. Su <strong>cono de visión</strong> cambia de color (verde / amarillo / rojo). Se puede eliminar por la espalda. Sus parámetros se leen de un <strong>Data Asset</strong>, lo que permite crear tipos de guardia sin tocar código.</li>
+  <li><strong>Guardias</strong> (<code>AStealthGuardCharacter</code> + <code>AStealthAIController</code>): enemigo principal, gobernado por un <strong>Behavior Tree</strong>. Patrulla por NavMesh, percibe por vista y oído, y escala su alerta (<strong>Unaware → Suspicious → Alerted</strong>). Investiga ruidos, persigue y abre puertas. Su <strong>cono de visión</strong> cambia de color (verde / amarillo / rojo). Se puede eliminar por la espalda o <strong>aturdir a distancia con el kunai</strong>. Sus parámetros se leen de un <strong>Data Asset</strong>, lo que permite crear tipos de guardia sin tocar código.</li>
   <li><strong>Cámaras de seguridad</strong> (<code>AStealthSecurityCamera</code>): segundo perceptor, gobernado por un <strong>State Tree</strong>. Detección distinta: <strong>solo visión</strong>. Barre un arco fijo; al verte contribuye a la detección. Se puede desactivar desde un interruptor.</li>
 </ul>
 <h3>Actores del mundo</h3>
@@ -69,34 +69,35 @@
   <li><strong>Zona de extracción</strong> (<code>AStealthExtractionZone</code>): la zona segura / salida.</li>
   <li><strong>Tarjeta, código y puertas</strong> (<code>AStealthKey</code>, <code>AStealthDoor</code>): gating de acceso.</li>
   <li><strong>Arbusto y escondite</strong> (<code>AStealthCoverBush</code>, <code>AStealthHidingSpot</code>): cobertura y ocultación.</li>
-  <li><strong>Interruptor de cámara</strong> (<code>AStealthCameraSwitch</code>) y <strong>objeto arrojadizo</strong> (<code>AStealthThrowable</code>): desactivar cámaras y distraer guardias.</li>
+  <li><strong>Kunai</strong> (<code>AStealthKunai</code>): proyectil recto que aturde al guardia que impacta. <strong>Nube de humo</strong> (<code>AStealthSmokeCloud</code>): cobertura temporal que oculta al jugador. <strong>Interruptor de cámara</strong> (<code>AStealthCameraSwitch</code>): desactiva cámaras enlazadas.</li>
 </ul>
 
 <h2>3. Mecánicas (implementadas en C++)</h2>
-<p>Más de siete mecánicas jugables, integradas entre sí y parte activa del núcleo:</p>
+<p>Nueve mecánicas jugables, integradas entre sí y parte activa del núcleo:</p>
 <ul>
   <li><strong>Locomoción stealth contextual.</strong> Caminar / correr / agacharse, cada modo con su velocidad y su <strong>radio de ruido</strong>. Agachado es silencioso; correr se escucha lejos.</li>
   <li><strong>Sistema de detección por IA.</strong> Perceptores con <strong>AI Perception</strong>; cada uno que te ve cuenta como "watcher" y una <strong>barra de detección global</strong> sube/baja.</li>
   <li><strong>Eliminación silenciosa (takedown).</strong> Por detrás de un guardia (validado por producto punto y trace), neutralización con montage.</li>
-  <li><strong>Distracción arrojadiza.</strong> Un objeto que al impactar <strong>emite sonido</strong>; los guardias usan <strong>EQS</strong> para elegir un punto de inspección e ir a investigar.</li>
-  <li><strong>Coberturas y escondites.</strong> Arbustos (cobertura al agacharse) y muebles (ocultación total). La cámara aplica <strong>fade de oclusión</strong>.</li>
-  <li><strong>Sistema llave → puerta.</strong> Tarjeta de acceso y código de escape que abren puertas; gating del recorrido.</li>
-  <li><strong>Interruptor de cámaras.</strong> Desactiva cámaras enlazadas.</li>
-  <li><strong>Invisibilidad (GAS).</strong> Habilidad activa con el <strong>Gameplay Ability System</strong> (<code>UGA_Invisibility</code>): por un tiempo la IA no te ve. Con cooldown en el HUD.</li>
+  <li><strong>Kunai aturdidor (GAS).</strong> El jugador dispara un kunai <strong>recto hacia el cursor</strong>; si impacta a un guardia lo deja <strong>aturdido</strong> unos segundos (se le corta el Behavior Tree y el movimiento). Neutralización a distancia. Implementado como <code>UGameplayAbility</code>.</li>
+  <li><strong>Coberturas y escondites.</strong> Arbustos (cobertura al agacharse) y muebles (ocultación total). La cámara aplica <strong>fade de oclusión</strong> para no tapar al jugador.</li>
+  <li><strong>Sistema llave → puerta.</strong> Tarjeta de acceso y código de escape que abren puertas cerradas; gating del recorrido.</li>
+  <li><strong>Interruptor de cámaras.</strong> Desactiva cámaras de seguridad enlazadas.</li>
+  <li><strong>Invisibilidad (GAS).</strong> Habilidad activa: por un tiempo limitado la IA no te ve, con cooldown mostrado en el HUD.</li>
+  <li><strong>Granada de humo (GAS).</strong> El jugador genera una <strong>nube de humo</strong> a demanda; mientras esté dentro, la IA no puede verlo (cobertura móvil, dura unos segundos y se disipa). Implementada como <code>UGameplayAbility</code>.</li>
 </ul>
 
 <h2>4. Metas y obstáculos</h2>
 <p><strong>Meta principal:</strong> conseguir la tarjeta, robar los planos, encontrar el código y escapar a la zona de extracción con los planos.</p>
 <p><strong>Sub-metas / gating:</strong> tarjeta → puerta de los planos; código → puerta de salida. Desactivar cámaras, aprender rutas de patrulla.</p>
 <p><strong>Obstáculos:</strong> guardias con conos de visión y oído; cámaras de visión fija; puertas con llave; y la propia <strong>barra de detección</strong>. La <strong>dificultad</strong> elegida en el menú regula qué tan rápido sube esa barra.</p>
-<p><strong>Tensión central:</strong> velocidad vs. silencio. Correr llega antes pero hace ruido; agacharse es seguro pero lento.</p>
+<p><strong>Tensión central:</strong> velocidad vs. silencio. Correr llega antes pero hace ruido; agacharse es seguro pero lento. El kunai y el humo son válvulas de escape con costo (cooldown).</p>
 
 <h2>5. Reglas</h2>
 <ul>
   <li>El jugador <strong>gana</strong> si entra a la zona de extracción <strong>teniendo los planos</strong>.</li>
   <li>El jugador <strong>pierde</strong> si la <strong>barra de detección se llena</strong> (<code>DetectionLevel</code> = 1.0).</li>
   <li>La detección <strong>sube</strong> mientras al menos un perceptor te ve y <strong>baja</strong> cuando ninguno te ve. La tasa se multiplica por la <strong>dificultad</strong> (Fácil / Normal / Difícil).</li>
-  <li>Un guardia solo se elimina <strong>por la espalda</strong> y en rango; queda fuera de juego.</li>
+  <li>Un guardia se elimina <strong>por la espalda</strong> en rango, o se <strong>aturde a distancia</strong> con el kunai (temporal).</li>
   <li>Las puertas con llave no se abren sin la llave/código correspondiente.</li>
   <li>El estado de la partida es explícito: <strong>Playing → Won / Lost</strong> (<code>EStealthMatchState</code>).</li>
   <li>El <strong>tiempo de partida</strong> se cronometra; al ganar se registra y se guarda el <strong>mejor tiempo</strong>.</li>
@@ -115,13 +116,13 @@
 <table>
   <tr><th>Herramienta</th><th>Uso en el proyecto</th></tr>
   <tr><td>NavMesh + Pathfinding</td><td>Patrullaje y persecución (Runtime Generation: Dynamic).</td></tr>
-  <tr><td>Behavior Tree</td><td>Cerebro del guardia (patrulla → sospecha → alerta → persecución).</td></tr>
+  <tr><td>Behavior Tree</td><td>Cerebro del guardia (patrulla → sospecha → alerta → persecución). Se detiene al ser aturdido por el kunai.</td></tr>
   <tr><td>State Tree</td><td>Cerebro de la cámara (detección solo por visión).</td></tr>
   <tr><td>AI Perception</td><td>Vista + oído en guardias; solo vista en cámaras.</td></tr>
-  <tr><td>EQS</td><td>Punto de inspección tras escuchar una distracción.</td></tr>
+  <tr><td>EQS</td><td>Punto de inspección tras escuchar un ruido (p. ej. el jugador corriendo).</td></tr>
   <tr><td>Smart Object</td><td>Puertas que la IA abre a su paso.</td></tr>
   <tr><td>Teams (GenericTeamAgent)</td><td>Distingue jugador de IA para la percepción hostil.</td></tr>
-  <tr><td>AISightTargetInterface</td><td>El jugador decide su visibilidad (cover, escondite, invisibilidad).</td></tr>
+  <tr><td>AISightTargetInterface</td><td>El jugador decide su visibilidad (cover, escondite, invisibilidad, humo).</td></tr>
 </table>
 <p>Los agentes son <strong>autónomos desde el inicio</strong>, reaccionan de forma <strong>clara y progresiva</strong>, y funcionan con <strong>múltiples instancias activas</strong> en simultáneo.</p>
 
@@ -140,8 +141,13 @@
   <li><strong><code>UStealthGuardConfig</code></strong> (<code>UPrimaryDataAsset</code>) — configuración de tipos de guardia.</li>
   <li><strong><code>UStealthGameSave</code></strong> (<code>USaveGame</code>) — datos persistidos (dificultad, récord, stats).</li>
 </ul>
-<h3>GAS</h3>
-<p>Habilidad de <strong>invisibilidad</strong> (<code>UGA_Invisibility</code>) con cooldown vía Gameplay Effect, integrada al <code>UAbilitySystemComponent</code> del jugador y al HUD.</p>
+<h3>GAS (Gameplay Ability System)</h3>
+<p>Tres habilidades activas, todas <code>UGameplayAbility</code> con cooldown vía Gameplay Effect, integradas al <code>UAbilitySystemComponent</code> del jugador y al HUD:</p>
+<ul>
+  <li><strong>Invisibilidad</strong> (<code>UGA_Invisibility</code>) — la IA no te ve por un tiempo.</li>
+  <li><strong>Kunai aturdidor</strong> (<code>UGA_ThrowKunai</code>) — dispara el proyectil que noquea guardias.</li>
+  <li><strong>Granada de humo</strong> (<code>UGA_SmokeGrenade</code>) — genera la nube de cobertura.</li>
+</ul>
 <h3>Asset Streaming</h3>
 <p>El <code>ItemRegistrySubsystem</code> carga el DataTable y <strong>precarga los íconos por streaming asíncrono</strong> (<code>FStreamableManager::RequestAsyncLoad</code> con <code>TSoftObjectPtr</code>), sin bloquear la carga del nivel.</p>
 <h3>Patrones de diseño (3+)</h3>
@@ -154,7 +160,7 @@
 <h3>Comunicación entre clases C++</h3>
 <p>Interfaces (<code>IInteractable</code>, <code>IAISightTargetInterface</code>, <code>IGenericTeamAgentInterface</code>), delegados multicast (Observer) y referencias validadas con guardas de puntero.</p>
 <h3>Enhanced Input</h3>
-<p>Todas las acciones (mover, correr, agachar, takedown, arrojar, interactuar, invisibilidad) mapeadas con Enhanced Input.</p>
+<p>Todas las acciones (mover, correr, agachar, takedown, kunai, humo, interactuar, invisibilidad) mapeadas con Enhanced Input.</p>
 <h3>Animación</h3>
 <p><code>UStealthAnimInstance</code> con estados diferenciados (Idle / Walk / Run / Crouch).</p>
 
@@ -164,12 +170,12 @@
 <h2>10. Mapeo a los criterios de evaluación</h2>
 <table>
   <tr><th>Criterio (mínimo)</th><th>Dónde se cumple</th></tr>
-  <tr><td>Ejecuta sin errores críticos</td><td>Flujo completo menú → gameplay → pantalla final probado.</td></tr>
-  <tr><td>≥ 7 mecánicas funcionales</td><td>8 mecánicas (sección 3).</td></tr>
+  <tr><td>Ejecuta sin errores críticos</td><td>Flujo completo menú → gameplay → pantalla final probado en build.</td></tr>
+  <tr><td>≥ 7 mecánicas funcionales</td><td>9 mecánicas (sección 3).</td></tr>
   <tr><td>Gameplay Framework</td><td>GameMode / GameState / PlayerController / HUD (sección 8).</td></tr>
   <tr><td>Comunicación entre clases C++</td><td>Interfaces + delegados + referencias validadas.</td></tr>
   <tr><td>Data Assets o Data Tables</td><td><code>DT_Items</code> + <code>UStealthGuardConfig</code> + <code>UStealthGameSave</code>.</td></tr>
-  <tr><td>GAS</td><td><code>UGA_Invisibility</code> con cooldown.</td></tr>
+  <tr><td>GAS</td><td>3 GameplayAbilities: invisibilidad, kunai y humo, con cooldown.</td></tr>
   <tr><td>≥ 3 patrones de diseño</td><td>Observer, State, Component (+ Interface, Subsystem).</td></tr>
   <tr><td>3 subsistemas + Game Instance Subsystem</td><td>Alert (World) + ItemRegistry + Progress (GameInstance).</td></tr>
   <tr><td>Documentación detallada</td><td>Este documento.</td></tr>
@@ -184,7 +190,7 @@
 </table>
 
 <h2>11. Diversión</h2>
-<p>El corazón divertido de StealthSurvival es la <strong>tensión del casi-me-ven</strong>: leer un cono de visión, calcular si me da el tiempo, tirar una distracción en el momento justo y colarme por el hueco que dejó el guardia. El jugador siempre tiene información clara (ruido, visibilidad, color del cono, barra de detección, timer) para decidir, y el juego premia la paciencia y la lectura del entorno por sobre los reflejos. La invisibilidad y el takedown dan la válvula de escape cuando el plan se rompe, manteniendo la sensación de estar siempre al borde pero nunca sin salida.</p>
+<p>El corazón divertido de StealthSurvival es la <strong>tensión del casi-me-ven</strong>: leer un cono de visión, calcular si me da el tiempo, aturdir a un guardia con el kunai en el momento justo o tirar humo para cruzar una zona expuesta. El jugador siempre tiene información clara (ruido, visibilidad, color del cono, barra de detección, timer) para decidir, y el juego premia la paciencia y la lectura del entorno por sobre los reflejos. La invisibilidad, el kunai y el humo dan válvulas de escape cuando el plan se rompe, manteniendo la sensación de estar siempre al borde pero nunca sin salida.</p>
 
 </body>
 </html>
